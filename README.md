@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nutrition Tracker
 
-## Getting Started
+A minimalistic web application for tracking food intake with AI-powered nutritional analysis.
 
-First, run the development server:
+## Features
+
+- 📸 Upload food images for automatic nutritional analysis
+- 🎯 Set personalized daily calorie and macro goals
+- 📊 Track your progress against goals
+- 🗑️ Delete entries
+- 🤖 AI-powered analysis using OpenAI or Google Gemini
+
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure AI Provider
+
+Copy the example environment file:
+
+```bash
+cp env.example .env.local
+```
+
+Edit `.env.local` and choose your AI provider:
+Using LM Studio (Local)
+
+```bash
+AI_PROVIDER=lmstudio
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
+LMSTUDIO_MODEL=openai/gpt-oss-20b
+```
+
+1. Download and install LM Studio from: https://lmstudio.ai/
+2. Load your preferred model (e.g., openai/gpt-oss-20b)
+3. Start the local server in LM Studio (usually runs on port 1234)
+4. Update `LMSTUDIO_MODEL` to match the model you loaded
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+1. **Set Your Goals**: Click the settings icon to open the Goal Calculator. Enter your age, gender, height, weight, and activity level to get AI-calculated nutritional goals.
 
-To learn more about Next.js, take a look at the following resources:
+2. **Track Food**: Click the + button to upload a food image. The AI will analyze it and provide nutritional information.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Monitor Progress**: View your daily calorie and macro intake compared to your goals.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Delete Entries**: Swipe or click the delete button on any entry to remove it.
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend**: Next.js 16, React 19, TailwindCSS 4, Framer Motion
+- **AI**: OpenAI GPT-4o or Google Gemini 1.5 Flash
+- **Storage**: Local JSON file storage
+- **UI Components**: Radix UI, Lucide Icons
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT

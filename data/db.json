@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "dailyGoal": 2200,
+    "proteinGoal": 175,
+    "carbsGoal": 175,
+    "fatGoal": 85,
+    "userStats": {
+      "age": 30,
+      "height": 170,
+      "weight": 60,
+      "gender": "male",
+      "activityLevel": "light"
+    }
+  },
+  "entries": []
+}

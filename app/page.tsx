@@ -1,65 +1,237 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { NutritionSummary } from '@/components/nutrition-summary';
+import { MacroDisplay } from '@/components/macro-display';
+import { UploadModal } from '@/components/upload-modal';
+import { GoalCalculator } from '@/components/goal-calculator';
+import { FoodEntryItem } from '@/components/food-entry-item';
+import { Entry } from '@/lib/types';
+import { Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [dailyGoal, setDailyGoal] = useState(2000);
+  const [macroGoals, setMacroGoals] = useState({ protein: 150, carbs: 250, fat: 70 });
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [entriesRes, settingsRes] = await Promise.all([
+        fetch('/api/entries'),
+        fetch('/api/settings')
+      ]);
+      const entriesData = await entriesRes.json();
+      const settingsData = await settingsRes.json();
+
+      setEntries(entriesData);
+      setDailyGoal(settingsData.dailyGoal);
+      setMacroGoals({
+        protein: settingsData.proteinGoal || 150,
+        carbs: settingsData.carbsGoal || 250,
+        fat: settingsData.fatGoal || 70
+      });
+    } catch (error) {
+      console.error('Failed to fetch data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveEntry = async (data: any) => {
+    try {
+      const res = await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          nutrition: {
+            calories: data.calories,
+            protein: data.protein,
+            carbs: data.carbs,
+            fat: data.fat,
+          },
+          items: data.items,
+        }),
+      });
+      const newEntry = await res.json();
+      setEntries([...entries, newEntry]);
+      setIsUploadOpen(false);
+    } catch (error) {
+      console.error('Failed to save entry', error);
+    }
+  };
+
+  const handleSaveSettings = async (data: any) => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      setDailyGoal(data.dailyGoal);
+      setMacroGoals({
+        protein: data.proteinGoal,
+        carbs: data.carbsGoal,
+        fat: data.fatGoal
+      });
+      setIsSettingsOpen(false);
+    } catch (error) {
+      console.error('Failed to save settings', error);
+    }
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    try {
+      await fetch(`/api/entries/${id}`, { method: 'DELETE' });
+      setEntries(entries.filter(e => e.id !== id));
+    } catch (error) {
+      console.error('Failed to delete entry', error);
+    }
+  };
+
+  const totalCalories = entries.reduce((sum, entry) => sum + entry.nutrition.calories, 0);
+  const totalProtein = entries.reduce((sum, entry) => sum + entry.nutrition.protein, 0);
+  const totalCarbs = entries.reduce((sum, entry) => sum + entry.nutrition.carbs, 0);
+  const totalFat = entries.reduce((sum, entry) => sum + entry.nutrition.fat, 0);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <motion.div
+          className="h-12 w-12 rounded-full border-4 border-primary/30 border-t-primary"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen max-w-md mx-auto p-6 pb-32">
+      <motion.header
+        className="mb-8 flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight gradient-text mb-1">
+            Today
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSettingsOpen(true)}
+          className="rounded-full hover:bg-primary/10 transition-colors"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+      </motion.header>
+
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <NutritionSummary
+          current={totalCalories}
+          goal={dailyGoal}
+          label="Calories"
+          unit="kcal"
+        />
+      </motion.section>
+
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <MacroDisplay
+          protein={totalProtein}
+          proteinGoal={macroGoals.protein}
+          carbs={totalCarbs}
+          carbsGoal={macroGoals.carbs}
+          fat={totalFat}
+          fatGoal={macroGoals.fat}
+        />
+      </motion.section>
+
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <h2 className="mb-5 text-lg font-semibold text-foreground">Recent Entries</h2>
+        <div className="space-y-3">
+          {entries.length === 0 ? (
+            <motion.div
+              className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center backdrop-blur-sm bg-card/50"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="text-6xl mb-4 opacity-20">🍽️</div>
+              <p className="text-muted-foreground text-sm">
+                No food tracked yet today.
+              </p>
+              <p className="text-muted-foreground/60 text-xs mt-1">
+                Tap the + button to add your first entry
+              </p>
+            </motion.div>
+          ) : (
+            entries.map((entry) => (
+              <FoodEntryItem
+                key={entry.id}
+                entry={entry}
+                onDelete={handleDeleteEntry}
+              />
+            ))
+          )}
         </div>
-      </main>
-    </div>
+      </motion.section>
+
+      <motion.div
+        className="fixed bottom-8 right-6 left-6 max-w-md mx-auto flex justify-end pointer-events-none"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <Button
+          size="icon"
+          className="h-16 w-16 rounded-full shadow-2xl pointer-events-auto bg-gradient-to-br from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 transition-all duration-300 hover:scale-110 hover:shadow-primary/50"
+          onClick={() => setIsUploadOpen(true)}
+        >
+          <Plus className="h-7 w-7" />
+        </Button>
+      </motion.div>
+
+      <UploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSave={handleSaveEntry}
+      />
+
+      <GoalCalculator
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={handleSaveSettings}
+      />
+    </main>
   );
 }
