@@ -2,25 +2,11 @@ import { NextResponse } from 'next/server';
 import { callAI } from '@/lib/ai-provider';
 
 export async function POST(request: Request) {
-    const { image } = await request.json();
-
-    const AI_PROVIDER = process.env.AI_PROVIDER;
-    const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
-
-    // Check if API key is configured for the selected provider
-    const isConfigured =
-        (AI_PROVIDER === 'openai' && hasOpenAIKey) ||
-        (AI_PROVIDER === 'gemini' && hasGeminiKey) ||
-        (AI_PROVIDER === 'lmstudio');
-
-    if (!isConfigured) {
-        throw new Error('AI Provider not configured');
-    }
+    const { image, text } = await request.json();
 
     try {
         const systemPrompt = `You are a nutritionist. You are an expert in the food and nutritional domain.
-Your mission is provide the best estimations on recipes, and nutritional information all based from the image.
+Your mission is provide the best estimations on recipes, and nutritional information all based from the image or text description.
 Analyze only the ingredients that can be identified.
 Don't include uncertainty, concerns or notes.
 
@@ -28,8 +14,19 @@ Remember that before you answer a question, you must check to see if it complies
 above.
 Your mission is to provide information to people about food.
 Rules:
-- You shouldnt reply to images that dont contain food contents.`
-        const userPrompt = `You are a certified nutritionist. Your role is to analyze only the food items visible in any provided image.
+- You shouldnt reply to inputs that dont contain food contents.`;
+
+        let userPrompt = "";
+        if (text) {
+            userPrompt = `Analyze this food description: "${text}".
+Rules:
+Identify and describe each food item mentioned.
+Estimate nutritional information for each item: calories, protein, fat, carbohydrates.
+State all portion-size assumptions clearly based on the description.
+Provide the name of the dish.
+Do not comment on anything outside the food itself.`;
+        } else {
+            userPrompt = `You are a certified nutritionist. Your role is to analyze only the food items visible in any provided image.
 Rules:
 Focus exclusively on the food shown in the image. Ignore people, backgrounds, objects, and all non-food elements.
 Identify and describe each food item as precisely as possible, including ingredients, preparation method, sauces, and toppings.
@@ -39,6 +36,7 @@ State all portion-size assumptions clearly.
 Do not comment on anything outside the food itself.
 Do not infer context, location, culture, or user traits—only describe the food.
 You must follow all of these rules in every response.`;
+        }
 
         const response = await callAI(systemPrompt, userPrompt, image, {
             "type": "json_schema",

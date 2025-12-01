@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Check, Loader2, Camera } from 'lucide-react';
+import { Upload, X, Check, Loader2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -14,11 +14,12 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
-    const [step, setStep] = useState<'upload' | 'analyzing' | 'review'>('upload');
+    const [step, setStep] = useState<'upload' | 'text-entry' | 'analyzing' | 'review'>('upload'); // Added 'text-entry'
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
+    // Removed cameraInputRef
+    const [textInput, setTextInput] = useState(''); // Added textInput state
 
     const [error, setError] = useState<string | null>(null);
 
@@ -32,17 +33,23 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
             setImagePreview(e.target?.result as string);
             setStep('analyzing');
             // Use the result directly instead of state since state update is async
-            analyzeImage(e.target?.result as string);
+            analyzeFood({ image: e.target?.result as string }); // Changed analyzeImage to analyzeFood
         };
         reader.readAsDataURL(file);
     };
 
-    const analyzeImage = async (imageData: string) => {
+    const handleTextSubmit = () => { // Added handleTextSubmit
+        if (!textInput.trim()) return;
+        setStep('analyzing');
+        analyzeFood({ text: textInput });
+    };
+
+    const analyzeFood = async (payload: { image?: string; text?: string }) => { // Renamed analyzeImage to analyzeFood and changed signature
         try {
             const res = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData })
+                body: JSON.stringify(payload) // Changed body to use payload
             });
             const data = await res.json();
 
@@ -54,7 +61,7 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
             setStep('review');
         } catch (error: any) {
             console.error('Analysis failed', error);
-            setError(error.message || 'Failed to analyze image');
+            setError(error.message || 'Failed to analyze'); // Updated error message
             setStep('upload');
         }
     };
@@ -68,6 +75,7 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
         setStep('upload');
         setImagePreview(null);
         setAnalysisResult(null);
+        setTextInput(''); // Added textInput reset
         setError(null);
         onClose();
     };
@@ -107,19 +115,19 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
                                     </div>
 
                                     <div
-                                        onClick={() => cameraInputRef.current?.click()}
+                                        onClick={() => setStep('text-entry')} // Changed onClick to set step to 'text-entry'
                                         className="cursor-pointer rounded-xl bg-secondary/50 p-6 transition-all hover:bg-secondary hover:scale-105 flex flex-col items-center gap-3 border-2 border-transparent hover:border-primary/20"
                                     >
                                         <div className="p-3 bg-background rounded-full shadow-sm">
-                                            <Camera className="h-6 w-6 text-primary" />
+                                            <Type className="h-6 w-6 text-primary" /> {/* Changed Camera to Type */}
                                         </div>
-                                        <span className="font-medium text-sm">Take Photo</span>
+                                        <span className="font-medium text-sm">Describe Food</span> {/* Changed text */}
                                     </div>
                                 </div>
 
                                 <h3 className="text-lg font-semibold">Add Food</h3>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Take a photo or upload to track
+                                    Upload a photo or describe your meal {/* Changed text */}
                                 </p>
 
                                 <input
@@ -129,14 +137,7 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
                                     className="hidden"
                                     onChange={handleFileSelect}
                                 />
-                                <input
-                                    ref={cameraInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    className="hidden"
-                                    onChange={handleFileSelect}
-                                />
+                                {/* Removed camera input */}
 
                                 {error && (
                                     <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm w-full">
@@ -146,15 +147,36 @@ export function UploadModal({ isOpen, onClose, onSave }: UploadModalProps) {
                             </div>
                         )}
 
+                        {step === 'text-entry' && ( // Added new step for text entry
+                            <div className="flex flex-col gap-4 py-4">
+                                <h3 className="text-lg font-semibold text-center">Describe Your Meal</h3>
+                                <textarea
+                                    className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                                    placeholder="e.g., 1 cup of black coffee and a bagel with cream cheese..."
+                                    value={textInput}
+                                    onChange={(e) => setTextInput(e.target.value)}
+                                    autoFocus
+                                />
+                                <Button onClick={handleTextSubmit} disabled={!textInput.trim()}>
+                                    Analyze Food
+                                </Button>
+                                <Button variant="ghost" onClick={() => setStep('upload')}>
+                                    Back
+                                </Button>
+                            </div>
+                        )}
+
                         {step === 'analyzing' && (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="relative mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-background shadow-xl">
-                                    {imagePreview && (
+                                <div className="relative mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-background shadow-xl flex items-center justify-center bg-secondary/20"> {/* Added flex, items-center, justify-center, bg-secondary/20 */}
+                                    {imagePreview ? ( // Conditional rendering for image or text icon
                                         <img
                                             src={imagePreview}
                                             alt="Preview"
                                             className="h-full w-full object-cover"
                                         />
+                                    ) : (
+                                        <Type className="h-12 w-12 text-muted-foreground" />
                                     )}
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
                                         <Loader2 className="h-8 w-8 animate-spin text-white" />
