@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getEntries, addEntry } from '@/lib/storage';
 import { Entry } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid'; // We need uuid, let's add it to package.json later or use randomUUID
+
 
 export async function GET() {
     const entries = await getEntries();
