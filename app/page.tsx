@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NutritionSummary } from '@/components/nutrition-summary';
 import { MacroDisplay } from '@/components/macro-display';
@@ -16,9 +16,11 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [dailyGoal, setDailyGoal] = useState(2000);
   const [macroGoals, setMacroGoals] = useState({ protein: 150, carbs: 250, fat: 70 });
+  const [settings, setSettings] = useState<any>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     fetchData();
@@ -34,6 +36,7 @@ export default function Home() {
       const settingsData = await settingsRes.json();
 
       setEntries(entriesData);
+      setSettings(settingsData);
       setDailyGoal(settingsData.dailyGoal);
       setMacroGoals({
         protein: settingsData.proteinGoal || 150,
@@ -84,6 +87,7 @@ export default function Home() {
         carbs: data.carbsGoal,
         fat: data.fatGoal
       });
+      setSettings({ ...settings, ...data });
       setIsSettingsOpen(false);
     } catch (error) {
       console.error('Failed to save settings', error);
@@ -99,10 +103,29 @@ export default function Home() {
     }
   };
 
-  const totalCalories = entries.reduce((sum, entry) => sum + entry.nutrition.calories, 0);
-  const totalProtein = entries.reduce((sum, entry) => sum + entry.nutrition.protein, 0);
-  const totalCarbs = entries.reduce((sum, entry) => sum + entry.nutrition.carbs, 0);
-  const totalFat = entries.reduce((sum, entry) => sum + entry.nutrition.fat, 0);
+  const filteredEntries = entries.filter(entry => {
+    const entryDate = new Date(entry.timestamp);
+    return entryDate.toDateString() === currentDate.toDateString();
+  });
+
+  const totalCalories = filteredEntries.reduce((sum, entry) => sum + entry.nutrition.calories, 0);
+  const totalProtein = filteredEntries.reduce((sum, entry) => sum + entry.nutrition.protein, 0);
+  const totalCarbs = filteredEntries.reduce((sum, entry) => sum + entry.nutrition.carbs, 0);
+  const totalFat = filteredEntries.reduce((sum, entry) => sum + entry.nutrition.fat, 0);
+
+  const handlePrevDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() - 1);
+    setCurrentDate(newDate);
+  };
+
+  const handleNextDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() + 1);
+    setCurrentDate(newDate);
+  };
+
+  const isToday = currentDate.toDateString() === new Date().toDateString();
 
   if (loading) {
     return (
@@ -124,13 +147,27 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight gradient-text mb-1">
-            Today
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-full">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight gradient-text mb-1">
+              {isToday ? 'Today' : currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNextDay}
+            className="rounded-full"
+            disabled={isToday}
+          >
+            <ChevronRight className={`h-5 w-5 ${isToday ? 'opacity-30' : ''}`} />
+          </Button>
         </div>
         <Button
           variant="ghost"
@@ -179,7 +216,7 @@ export default function Home() {
       >
         <h2 className="mb-5 text-lg font-semibold text-foreground">Recent Entries</h2>
         <div className="space-y-3">
-          {entries.length === 0 ? (
+          {filteredEntries.length === 0 ? (
             <motion.div
               className="rounded-2xl border-2 border-dashed border-border/50 p-12 text-center backdrop-blur-sm bg-card/50"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -188,14 +225,16 @@ export default function Home() {
             >
               <div className="text-6xl mb-4 opacity-20">🍽️</div>
               <p className="text-muted-foreground text-sm">
-                No food tracked yet today.
+                No food tracked for this day.
               </p>
-              <p className="text-muted-foreground/60 text-xs mt-1">
-                Tap the + button to add your first entry
-              </p>
+              {isToday && (
+                <p className="text-muted-foreground/60 text-xs mt-1">
+                  Tap the + button to add your first entry
+                </p>
+              )}
             </motion.div>
           ) : (
-            entries.map((entry) => (
+            filteredEntries.map((entry) => (
               <FoodEntryItem
                 key={entry.id}
                 entry={entry}
@@ -231,6 +270,7 @@ export default function Home() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSave={handleSaveSettings}
+        initialSettings={settings}
       />
     </main>
   );

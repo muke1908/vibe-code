@@ -14,8 +14,19 @@ export async function callAI(systemPrompt: string, userPrompt: string, imageData
 }
 
 
+import { getData } from '@/lib/storage';
+
 async function callLMStudio(systemPrompt: string, userPrompt: string, imageData?: string, response_format?: object): Promise<AIResponse> {
-    const baseUrl = process.env.LMSTUDIO_BASE_URL || 'http://localhost:1234/v1';
+    let baseUrl = process.env.LMSTUDIO_BASE_URL || 'http://localhost:1234/v1';
+    try {
+        const data = await getData();
+        if (data.settings.apiBaseUrl) {
+            baseUrl = data.settings.apiBaseUrl;
+        }
+    } catch (e) {
+        console.warn("Failed to load settings for API URL, using default", e);
+    }
+
     const model = process.env.LMSTUDIO_MODEL || 'local-model';
 
     // Include image data if provided (vision-capable models like llava can handle it)

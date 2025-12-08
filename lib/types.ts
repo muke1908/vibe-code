@@ -35,6 +35,7 @@ export interface AppData {
       gender: 'male' | 'female';
       activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
     };
+    apiBaseUrl?: string;
   };
   entries: Entry[];
 }
